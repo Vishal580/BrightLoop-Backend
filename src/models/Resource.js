@@ -33,6 +33,10 @@ const resourceSchema = new mongoose.Schema(
     completedAt: {
       type: Date,
     },
+    estimatedTime: {
+      type: Number,
+      default: 0, 
+    }
   },
   {
     timestamps: true,

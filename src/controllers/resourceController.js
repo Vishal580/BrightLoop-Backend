@@ -6,36 +6,68 @@ const { ObjectId } = mongoose.Types
 
 const getResources = async (req, res) => {
   try {
-    const resources = await Resource.find({ user: req.user._id }).populate("category", "name").sort({ createdAt: -1 })
+    const resources = await Resource.find({ user: req.user._id })
+      .populate("category", "name")
+      .sort({ createdAt: -1 })
+      .lean() // so we can attach extra fields manually
 
-    res.json(resources)
+    // Get all progress logs for the user in a single query
+    const progressLogs = await ProgressLog.find({ user: req.user._id })
+      .select("resource timeSpent")
+      .lean()
+
+    const progressMap = new Map()
+    progressLogs.forEach(log => {
+      progressMap.set(log.resource.toString(), log.timeSpent)
+    })
+
+    // Attach actualTimeSpent to each resource
+    const enrichedResources = resources.map(resource => ({
+      ...resource,
+      actualTimeSpent: progressMap.get(resource._id.toString()) || 0,
+    }))
+
+    res.json(enrichedResources)
   } catch (error) {
     console.error("Get resources error:", error)
     res.status(500).json({ message: "Server error" })
   }
 }
 
+
 const getResourceById = async (req, res) => {
   try {
     const resource = await Resource.findOne({
       _id: req.params.id,
       user: req.user._id,
-    }).populate("category", "name")
+    })
+      .populate("category", "name")
+      .lean();
 
     if (!resource) {
-      return res.status(404).json({ message: "Resource not found" })
+      return res.status(404).json({ message: "Resource not found" });
     }
 
-    res.json(resource)
+    // Fetch time spent from ProgressLog
+    const progressLog = await ProgressLog.findOne({
+      user: req.user._id,
+      resource: resource._id,
+    }).select("timeSpent");
+
+    resource.actualTimeSpent = progressLog?.timeSpent || 0;
+
+    res.json(resource);
   } catch (error) {
-    console.error("Get resource error:", error)
-    res.status(500).json({ message: "Server error" })
+    console.error("Error in getResourceById:", error);
+    res.status(500).json({ message: "Server error" });
   }
-}
+};
+
+
 
 const createResource = async (req, res) => {
   try {
-    const { title, type, description, category } = req.body
+    const { title, type, description, category, estimatedTime } = req.body
 
     // Verify category belongs to user
     const categoryDoc = await Category.findOne({
@@ -52,6 +84,7 @@ const createResource = async (req, res) => {
       type,
       description,
       category,
+      estimatedTime,
       user: req.user._id,
     })
 
@@ -67,7 +100,7 @@ const createResource = async (req, res) => {
 
 const updateResource = async (req, res) => {
   try {
-    const { title, type, description, category } = req.body
+    const { title, type, description, category, estimatedTime } = req.body
 
     const resource = await Resource.findOne({
       _id: req.params.id,
@@ -95,6 +128,8 @@ const updateResource = async (req, res) => {
     if (type) resource.type = type
     if (description !== undefined) resource.description = description
     if (category) resource.category = category
+    if (estimatedTime !== undefined) resource.estimatedTime = estimatedTime
+    resource.isCompleted = false
 
     await resource.save()
     await resource.populate("category", "name")
@@ -129,9 +164,13 @@ const deleteResource = async (req, res) => {
 
 const markResourceComplete = async (req, res) => {
   try {
+    const resourceId = req.params.id
+    const userId = req.user._id
+    const { actualTimeSpent = 0 } = req.body
+
     const resource = await Resource.findOne({
-      _id: req.params.id,
-      user: req.user._id,
+      _id: resourceId,
+      user: userId,
     })
 
     if (!resource) {
@@ -142,24 +181,32 @@ const markResourceComplete = async (req, res) => {
     resource.completedAt = new Date()
     await resource.save()
 
-    // Create or update progress log
-    await ProgressLog.findOneAndUpdate(
-      { resource: resource._id, user: req.user._id },
+    // Create or update progress log with actual time spent
+    const progress = await ProgressLog.findOneAndUpdate(
+      { user: userId, resource: resourceId },
       {
-        completionStatus: "completed",
-        completionDate: new Date(),
-        timeSpent: req.body.timeSpent || 0,
+        $set: {
+          completionStatus: "completed",
+          completionDate: new Date(),
+          timeSpent: actualTimeSpent,
+        },
       },
-      { upsert: true, new: true },
+      { upsert: true, new: true }
     )
 
     await resource.populate("category", "name")
-    res.json(resource)
+
+    res.status(200).json({
+      message: "Marked as complete",
+      resource,
+      progress,
+    })
   } catch (error) {
     console.error("Mark complete error:", error)
     res.status(500).json({ message: "Server error" })
   }
 }
+
 
 const getResourcesSummary = async (req, res) => {
   try {

@@ -1,7 +1,4 @@
 .env
 node_modules
 
-*.pem
-*.pfx
-
 *.log
