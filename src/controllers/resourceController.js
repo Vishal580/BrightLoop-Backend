@@ -265,7 +265,7 @@ const getResourcesSummary = async (req, res) => {
     res.json({
       totalResources,
       completedResources,
-      totalTimeSpent: Math.round(totalTimeSpent / 60), // Convert to hours
+      totalTimeSpent,
       categoryStats,
     })
   } catch (error) {
