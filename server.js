@@ -8,6 +8,7 @@ const connectDB = require("./src/config/database")
 const authRoutes = require("./src/routes/auth")
 const resourceRoutes = require("./src/routes/resources")
 const categoryRoutes = require("./src/routes/categoryRoutes")
+const chatRoutes = require("./src/routes/chat")
 
 const app = express()
 
@@ -38,6 +39,7 @@ app.use(express.urlencoded({ extended: true }))
 app.use("/api/auth", authRoutes)
 app.use("/api/resources", resourceRoutes)
 app.use("/api/categories", categoryRoutes)
+app.use("/api/chat", chatRoutes)
 
 // Health check
 app.get("/api/health", (req, res) => {
