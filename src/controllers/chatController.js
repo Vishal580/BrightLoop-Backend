@@ -8,11 +8,12 @@ const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
 const chat = async (req, res) => {
     const { message } = req.body;
     const prompt = `
-  You are a helpful AI assistant.
+    You are a helpful AI assistant.
 
     Rules:
     1. Provide only the final answer. It is important that you do not include any explanation on the steps below.
     2. Do not show the intermediate steps information.
+    3. Give a short and concise answer to the user's question if they ask for a specific answer like definition, what, who, where, when, how, etc.
 
     Steps:
     1. Decide if the answer should be a brief sentence or a list of suggestions.
