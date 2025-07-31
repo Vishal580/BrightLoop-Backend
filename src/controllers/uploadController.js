@@ -1,5 +1,7 @@
 const fs = require('fs');
 const path = require('path');
+const pdfParse = require('pdf-parse');
+const mammoth = require('mammoth');
 
 const uploadJobDescription = async (req, res) => {
   try {
@@ -10,17 +12,25 @@ const uploadJobDescription = async (req, res) => {
     }
 
     const filePath = req.file.path;
-    
-    // Read the file content
+    const mimeType = req.file.mimetype;
     let content = '';
-    
-    if (req.file.mimetype === 'text/plain') {
+
+    if (mimeType === 'text/plain') {
       content = fs.readFileSync(filePath, 'utf8');
-    } else if (req.file.mimetype === 'application/pdf') {
-      // For PDF files, you might want to use a PDF parser like pdf-parse
-      // For now, we'll return an error message
+
+    } else if (mimeType === 'application/pdf') {
+      const dataBuffer = fs.readFileSync(filePath);
+      const pdfData = await pdfParse(dataBuffer);
+      content = pdfData.text;
+
+    } else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      const data = await mammoth.extractRawText({ path: filePath });
+      content = data.value;
+
+    } else {
+      fs.unlinkSync(filePath);
       return res.status(400).json({
-        error: 'PDF parsing not implemented yet. Please use .txt files.'
+        error: 'Unsupported file type'
       });
     }
 
