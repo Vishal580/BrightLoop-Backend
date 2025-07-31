@@ -2,6 +2,7 @@ const express = require("express")
 const cors = require("cors")
 const helmet = require("helmet")
 const rateLimit = require("express-rate-limit")
+const multer = require('multer');
 require("dotenv").config()
 
 const connectDB = require("./src/config/database")
@@ -9,6 +10,8 @@ const authRoutes = require("./src/routes/auth")
 const resourceRoutes = require("./src/routes/resources")
 const categoryRoutes = require("./src/routes/categoryRoutes")
 const chatRoutes = require("./src/routes/chat")
+const questionRoutes = require('./src/routes/questionRoutes');
+const uploadRoutes = require('./src/routes/uploadRoutes');
 
 const app = express()
 
@@ -40,23 +43,37 @@ app.use(limiter)
 app.use(express.json({ limit: "10mb" }))
 app.use(express.urlencoded({ extended: true }))
 
-// Routes
+// Existing Routes
 app.use("/api/auth", authRoutes)
 app.use("/api/resources", resourceRoutes)
 app.use("/api/categories", categoryRoutes)
 app.use("/api/chat", chatRoutes)
+app.use('/api/questions', questionRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Health check
 app.get("/api/health", (req, res) => {
   res.json({ status: "OK", timestamp: new Date().toISOString() })
 })
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack)
+// Error handling middleware for multer and general errors
+app.use((error, req, res, next) => {
+  // Handle multer errors
+  if (error instanceof multer.MulterError) {
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ error: 'File too large. Maximum size is 5MB.' });
+    }
+  }
+  
+  if (error.message === 'Only .txt and .pdf files are allowed') {
+    return res.status(400).json({ error: error.message });
+  }
+
+  // General error handling
+  console.error(error.stack)
   res.status(500).json({
     message: "Something went wrong!",
-    error: process.env.NODE_ENV === "development" ? err.message : {},
+    error: process.env.NODE_ENV === "development" ? error.message : {},
   })
 })
 

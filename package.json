@@ -7,6 +7,14 @@
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
+  "keywords": [
+    "ai",
+    "interview",
+    "questions",
+    "generator",
+    "mern",
+    "nodejs"
+  ],
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
@@ -17,7 +25,9 @@
     "helmet": "^6.0.1",
     "jsonwebtoken": "^9.0.0",
     "mongoose": "^7.0.0",
-    "node-fetch": "^3.3.2"
+    "multer": "^2.0.2",
+    "node-fetch": "^3.3.2",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "nodemon": "^2.0.20"
