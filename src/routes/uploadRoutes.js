@@ -23,16 +23,23 @@ const storage = multer.diskStorage({
 const upload = multer({ 
   storage: storage,
   fileFilter: (req, file, cb) => {
-    if (file.mimetype === 'text/plain' || file.mimetype === 'application/pdf') {
+    const allowedTypes = [
+      'text/plain',
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+
+    if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Only .txt and .pdf files are allowed'), false);
+      cb(new Error('Only .txt, .pdf, and .docx files are allowed'), false);
     }
   },
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
+    fileSize: 5 * 1024 * 1024 // 5MB
   }
 });
+
 
 // Upload job description file
 router.post('/job-description', upload.single('jobDescription'), uploadController.uploadJobDescription);
