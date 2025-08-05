@@ -4,3 +4,6 @@ node_modules
 *.log
 
 uploads
+
+.env.development
+.env.production
