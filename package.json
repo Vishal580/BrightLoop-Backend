@@ -27,6 +27,7 @@
     "mammoth": "^1.9.1",
     "mongoose": "^7.0.0",
     "multer": "^2.0.2",
+    "newrelic": "^13.0.0",
     "node-fetch": "^3.3.2",
     "nodemailer": "^7.0.5",
     "pdf-parse": "^1.1.1",
