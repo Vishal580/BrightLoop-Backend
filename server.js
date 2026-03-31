@@ -22,16 +22,38 @@ connectDB()
 // Security middleware
 app.use(helmet())
 
-const isProduction = process.env.NODE_ENV === "production";
+const allowedOrigins = [
+  process.env.PRODUCTION_URL,
+  process.env.DEV_URL,
+  "http://localhost:3000",
+  "https://bright-loop.vercel.app",
+].filter(Boolean)
 
-const allowedOrigin = isProduction
-  ? process.env.PRODUCTION_URL
-  : process.env.DEV_URL || "http://localhost:3000";
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) {
+      return callback(null, true)
+    }
 
-app.use(cors({
-  origin: allowedOrigin,
+    const isAllowedOrigin =
+      allowedOrigins.includes(origin) ||
+      /^https:\/\/bright-loop(?:-.*)?\.vercel\.app$/.test(origin)
+
+    if (isAllowedOrigin) {
+      return callback(null, true)
+    }
+
+    console.warn(`Blocked by CORS for origin: ${origin}`)
+    return callback(new Error("Not allowed by CORS"))
+  },
   credentials: true,
-}));
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  optionsSuccessStatus: 204,
+}
+
+app.use(cors(corsOptions))
+app.options("*", cors(corsOptions))
 
 // Rate limiting
 const limiter = rateLimit({
